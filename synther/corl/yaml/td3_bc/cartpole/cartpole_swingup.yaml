@@ -1,0 +1,17 @@
+alpha: 2.5
+batch_size: 256
+buffer_size: 10000000
+checkpoints_path: null
+device: cuda
+discount: 0.99
+env: cartpole
+eval_freq: 5000
+expl_noise: 0.1
+load_model: ''
+n_episodes: 10
+noise_clip: 0.5
+normalize: true
+normalize_reward: false
+policy_freq: 2
+policy_noise: 0.2
+tau: 0.005

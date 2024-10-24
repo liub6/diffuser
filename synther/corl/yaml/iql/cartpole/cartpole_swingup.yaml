@@ -1,0 +1,13 @@
+batch_size: 256
+beta: 3.0
+device: cuda
+discount: 0.99
+group: iql-halfcheetah-medium-expert-v2-multiseed-v0
+iql_deterministic: false
+iql_tau: 0.7
+load_model: ''
+name: IQL
+normalize: true
+normalize_reward: false
+tau: 0.005
+

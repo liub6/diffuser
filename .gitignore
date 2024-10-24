@@ -150,13 +150,13 @@ dmypy.json
 example*
 
 # 忽略特定目录
-/scratch/work/liub6/diffusionRL/diffuser/synther/results-front
-/scratch/work/liub6/diffusionRL/diffuser/synther/results-rear
-/scratch/work/liub6/diffusionRL/diffuser/synther/results-middle
-/scratch/work/liub6/diffusionRL/diffuser/synther/results-extremes
-/scratch/work/liub6/diffusionRL/diffuser/synther/results-test
-/scratch/work/liub6/diffusionRL/diffuser/synther/wandb
-/scratch/work/liub6/diffusionRL/diffuser/synther/minari_datasets
-/scratch/work/liub6/diffusionRL/diffuser/synther/dataset
-/scratch/work/liub6/diffusionRL/diffuser/synther/corl_logs
+/synther/results-front
+/synther/results-rear
+/synther/results-middle
+/synther/results-extremes
+/synther/results-test
+/synther/wandb
+/synther/minari_datasets
+/synther/dataset
+/synther/corl_logs
 

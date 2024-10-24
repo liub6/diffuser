@@ -1,0 +1,3 @@
+defaults:
+  - override hydra/launcher: train_diffuser
+  - _self_
