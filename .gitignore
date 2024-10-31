@@ -150,13 +150,28 @@ dmypy.json
 example*
 
 # 忽略特定目录
-/synther/results-front
-/synther/results-rear
-/synther/results-middle
-/synther/results-extremes
+/synther/results-front_episodes=1000
+/synther/results-front_episodes=100
+/synther/results-front_episodes=10
+/synther/results-rear_episodes=1000
+/synther/results-rear_episodes=100
+/synther/results-rear_episodes=10
+/synther/results-middle_episodes=1000
+/synther/results-middle_episodes=100
+/synther/results-middle_episodes=10
+/synther/results-extremes_episodes=1000
+/synther/results-extremes_episodes=100
+/synther/results-extremes_episodes=10
 /synther/results-test
 /synther/wandb
 /synther/minari_datasets
 /synther/dataset
 /synther/corl_logs
+
+
+# dataset and model parameters
+*.pt
+*.pth
+*.pkl
+*.npz
 

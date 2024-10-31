@@ -105,7 +105,7 @@ def make_inputs(
         # print(obs.shape, actions.shape, rewards.shape, next_obs.shape)
         
     else:
-        dataset = np.load("/scratch/work/liub6/diffusionRL/diffuser/synther/dataset/50*998episodes.npz")
+        dataset = np.load("/scratch/work/liub6/diffusionRL/diffuser/synther/dataset/" + dataset_name)
         dataset = {key: dataset[key] for key in dataset.files}
         obs = dataset['observations']
         actions = dataset['actions']

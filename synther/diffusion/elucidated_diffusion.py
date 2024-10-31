@@ -24,8 +24,22 @@ from tqdm import tqdm, trange
 from synther.diffusion.norm import BaseNormalizer
 from synther.online.utils import make_inputs_from_replay_buffer
 from synther.diffusion.norm import MinMaxNormalizer
+from synther.early_stopper import EarlyStopper
 import gymnasium as gym
 from dmc2gymnasium import DMCGym
+
+import os
+import glob
+
+def get_latest_model_file(folder_path, pattern="model-*.pt"):
+    files = glob.glob(os.path.join(folder_path, pattern))
+    
+    if not files:
+        return None
+    
+    latest_file = max(files, key=os.path.getmtime)
+    
+    return latest_file
 
 # Convert diffusion samples back to (s, a, r, s') format.
 @gin.configurable
@@ -433,8 +447,10 @@ class Trainer(object):
             split_batches: bool = True,
             env = None,
             eval_interval = 1000,
+            step = 0,
     ):
         super().__init__()
+        self.earlystopper = EarlyStopper(patience=4, delta=0.002)
         self.eval_interval = eval_interval
         self.accelerator = Accelerator(
             split_batches=split_batches,
@@ -494,7 +510,7 @@ class Trainer(object):
             self.results_folder.mkdir(exist_ok=True)
 
         # step counter state
-        self.step = 0
+        self.step = step
 
         # prepare model, dataloader, optimizer with accelerator
         self.model, self.opt = self.accelerator.prepare(self.model, self.opt)
@@ -538,11 +554,15 @@ class Trainer(object):
 
         torch.save(data, str(self.results_folder / f'model-{milestone}.pt'))
 
-    def load(self, milestone: int):
+    def load(self, milestone: Optional[int] = None):
         accelerator = self.accelerator
         device = accelerator.device
 
-        data = torch.load(str(self.results_folder / f'model-{milestone}.pt'), map_location=device)
+        if milestone is not None:
+            data = torch.load(str(self.results_folder / f'model-{milestone}.pt'), map_location=device)
+        else:
+            latest_file = get_latest_model_file(self.results_folder)
+            data = torch.load(latest_file, map_location=device)
 
         model = self.accelerator.unwrap_model(self.model)
         model.load_state_dict(data['model'])
@@ -584,6 +604,7 @@ class Trainer(object):
         # accelerator.free_memory()
         
         self.model.train()
+        return eval_loss
     
     
     # Train for the full number of steps.
@@ -608,6 +629,8 @@ class Trainer(object):
                         loss = self.model(data, cond=context)
                         loss = loss / self.gradient_accumulate_every
                         total_loss += loss.item()
+                        
+                    # breakpoint()
 
                     self.accelerator.backward(loss)
 
@@ -620,7 +643,21 @@ class Trainer(object):
                 })
 
                 if self.step % self.eval_interval == 0:
-                    self.evaluate()
+                    eval_loss = self.evaluate()
+                    self.earlystopper(eval_loss)
+                    if self.earlystopper.early_stop:
+                        print("Early stopping")
+                        self.save(self.step)
+                        # break
+                        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Early stopping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    
+                    
                     for cond in (0.2, 0.4 ,0.6):
                         observations, actions, rewards, next_observations, terminals = self.generator.sample(
                             num_samples=self.generator.sample_batch_size,

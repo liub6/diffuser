@@ -145,6 +145,8 @@ train_union_lengths_list=("${!train_union_array[@]}")
 #     yes | minari delete dm-cartpole-train-length${length}-all-v0
 # done
 
+num_episodes=100
+dataset="50*${num_episodes}episodes.npz"
 
 # Train the diffuser
 jobids=()
@@ -164,8 +166,8 @@ for i in "${!names[@]}"; do
     jobid=$(sbatch ./diffusion.sh \
     0.1 \
     1 \
-    "dm-cartpole-train-length-all-v0" \
-    "./results-${name}" \
+    ${dataset} \
+    "./results-${name}_episodes=${num_episodes}" \
     0 \
     0 \
     ${name} | awk '{print $4}')
@@ -188,8 +190,8 @@ for i in "${!names[@]}"; do
         jobid=$(sbatch --dependency=$dependency_str ./diffusion.sh \
         ${length} \
         1 \
-        "dm-cartpole-train-length-all-v0" \
-        "./results-${name}" \
+        ${dataset} \
+        "./results-${name}_episodes=${num_episodes}" \
         1 \
         1 \
         ${name} | awk '{print $4}')
@@ -230,9 +232,9 @@ for i in "${!names[@]}"; do
             ./corl/yaml/$file/cartpole/cartpole_swingup.yaml \
             ./corl_logs/ \
             "diffuser-${name}-${length}-${seed}" \
-            "./results-${name}/5m_samples.npz_${length}.npz" \
+            "./results-${name}_episodes=${num_episodes}/5m_samples.npz_${length}.npz" \
             ${length} \
-            "dm-cartpole-train-length-all-v0" \
+            ${dataset} \
             0 \
             ${seed} \
             ${name} 
@@ -246,7 +248,7 @@ for i in "${!names[@]}"; do
             "context-aware-${name}-${length}-${seed}" \
             "None" \
             ${length} \
-            "dm-cartpole-train-length-all-v0" \
+            ${dataset} \
             1 \
             ${seed} \
             ${name} 
@@ -258,9 +260,9 @@ for i in "${!names[@]}"; do
             ./corl/yaml/$file/cartpole/cartpole_swingup.yaml \
             ./corl_logs/ \
             "diffuser-context-aware-${name}-${length}-${seed}" \
-            "./results-${name}/5m_samples.npz_${length}.npz" \
+            "./results-${name}_episodes=${num_episodes}/5m_samples.npz_${length}.npz" \
             ${length} \
-            "dm-cartpole-train-length-all-v0" \
+            ${dataset} \
             1 \
             ${seed} \
             ${name} 
@@ -274,7 +276,7 @@ for i in "${!names[@]}"; do
             "true-${name}-${length}-${seed}" \
             "None" \
             ${length} \
-            "dm-cartpole-train-length-all-v0" \
+            ${dataset} \
             0 \
             ${seed} \
             ${name} 
@@ -300,9 +302,9 @@ done
 #             # ./corl/yaml/td3_bc/cartpole/cartpole_swingup.yaml \             #config
 #             # ./corl_logs/ \                                                  #checkpoints_path
 #             # "${name}-${length}-${seed}" \                                   #name
-#             # "./results-${name}/5m_samples.npz_${length}.npz" \              #diffusion.path
+#             # "./results-${name}_episodes=${num_episodes}/5m_samples.npz_${length}.npz" \              #diffusion.path
 #             # ${length} \                                                     #pole_length
-#             # "dm-cartpole-train-length-${name}-v0" \                         #dataset
+#             # ${dataset} \                         #dataset
 #             # False \                                                         #context_aware
 #             # ${seed}                                                         #seed
 
@@ -312,9 +314,9 @@ done
 #             ./corl/yaml/$file/cartpole/cartpole_swingup.yaml \
 #             ./corl_logs/ \
 #             "diffuser-${name}-${length}-${seed}" \
-#             "./results-${name}/5m_samples.npz_${length}.npz" \
+#             "./results-${name}_episodes=${num_episodes}/5m_samples.npz_${length}.npz" \
 #             ${length} \
-#             "dm-cartpole-train-length-all-v0" \
+#             ${dataset} \
 #             0 \
 #             ${seed} \
 #             ${name}
@@ -328,7 +330,7 @@ done
 #             "context-aware-${name}-${length}-${seed}" \
 #             "None" \
 #             ${length} \
-#             "dm-cartpole-train-length-all-v0" \
+#             ${dataset} \
 #             1 \
 #             ${seed} \
 #             ${name}
@@ -340,9 +342,9 @@ done
 #             ./corl/yaml/$file/cartpole/cartpole_swingup.yaml \
 #             ./corl_logs/ \
 #             "diffuser-context-aware-${name}-${length}-${seed}" \
-#             "./results-${name}/5m_samples.npz_${length}.npz" \
+#             "./results-${name}_episodes=${num_episodes}/5m_samples.npz_${length}.npz" \
 #             ${length} \
-#             "dm-cartpole-train-length-all-v0" \
+#             ${dataset} \
 #             1 \
 #             ${seed} \
 #             ${name}
@@ -356,7 +358,7 @@ done
 #             "true-${name}-${length}-${seed}" \
 #             "None" \
 #             ${length} \
-#             "dm-cartpole-train-length-all-v0" \
+#             ${dataset} \
 #             0 \
 #             ${seed} \
 #             ${name}

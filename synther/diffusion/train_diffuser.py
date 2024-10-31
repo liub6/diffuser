@@ -20,6 +20,8 @@ from torch.utils.data import random_split
 
 from dm_control import suite
 
+import copy
+
 
 
 if __name__ == '__main__':
@@ -38,13 +40,20 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--save_samples', type=int, default=int(0))
     parser.add_argument('--num_transition', type=int, default=int(1))
-    parser.add_argument('--train_num_steps', type=int, default=int(3e5))
+    parser.add_argument('--train_num_steps', type=int, default=int(5e5))
     parser.add_argument('--save_num_samples', type=int, default=int(5e6))
     parser.add_argument('--save_file_name', type=str, default='5m_samples.npz')
     parser.add_argument('--load_checkpoint', type=int, default=int(0))
     parser.add_argument('--minari', type=int, default=int(1))
     parser.add_argument('--cond', type=float, nargs='+', default=None)
     args = parser.parse_args()
+    # # 使用正则表达式提取数字
+    # match = re.search(r'\*(\d+)episodes\.npz', args.dataset)
+    # if match:
+    #     number = int(match.group(1))
+    # args.results_folder = f'{args.results_folder}_episodes={number}'
+    
+    
     gin.parse_config_files_and_bindings(args.gin_config_files, args.gin_params)
 
     match = re.search(r'length(.+?)-v0', args.dataset)
@@ -61,15 +70,26 @@ if __name__ == '__main__':
     if args.minari:
         env = DMCGym("cartpole", "swingup", task_kwargs={'random':args.seed})
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        inputs = make_inputs(args.dataset, context=True, segment=args.segment)
-        inputs = torch.from_numpy(inputs[0]).float(), torch.from_numpy(inputs[1]).float()
-        # print(inputs[0].shape, inputs[1].shape)
-        dataset = torch.utils.data.TensorDataset(*inputs)
-        print("save_samples: ", args.save_samples)
-        print("load_checkpoint: ", args.load_checkpoint)
-        train_size = int(0.8 * len(dataset))  # 80% 用于训练
-        test_size = len(dataset) - train_size  # 20% 用于测试
-        train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+        # inputs = make_inputs(args.dataset, context=True, segment=args.segment)
+        # inputs = torch.from_numpy(inputs[0]).float(), torch.from_numpy(inputs[1]).float()
+        # # print(inputs[0].shape, inputs[1].shape)
+        # dataset = torch.utils.data.TensorDataset(*inputs)
+        # print("save_samples: ", args.save_samples)
+        # print("load_checkpoint: ", args.load_checkpoint)
+        # train_size = int(0.8 * len(dataset))  # 80% 用于训练
+        # test_size = len(dataset) - train_size  # 20% 用于测试
+        # train_dataset, eval_dataset = random_split(dataset, [train_size, test_size])
+        
+        train_dataset = make_inputs("train_dataset.npz", context=True, segment=args.segment)
+        inputs = torch.from_numpy(train_dataset[0]).float(), torch.from_numpy(train_dataset[1]).float()
+        train_dataset = torch.from_numpy(train_dataset[0]).float(), torch.from_numpy(train_dataset[1]).float()
+        
+        train_dataset = torch.utils.data.TensorDataset(*train_dataset)
+        
+        eval_dataset = make_inputs("eval_dataset.npz", context=True)
+        eval_dataset = torch.from_numpy(eval_dataset[0]).float(), torch.from_numpy(eval_dataset[1]).float()
+        eval_dataset = torch.utils.data.TensorDataset(*eval_dataset)
+        print("eval_dataset: ", eval_dataset)
     else:
         env = gym.make(args.dataset)
         inputs = make_inputs(env)
@@ -83,14 +103,16 @@ if __name__ == '__main__':
 
     # Create the diffusion model and trainer.
     diffusion = construct_diffusion_model(inputs=inputs[0] if args.minari else inputs, cond_dim=len(args.cond) if args.cond is not None else None)
+    
     trainer = Trainer(
         diffusion,
         train_dataset=train_dataset,
-        test_dataset=test_dataset,
+        test_dataset=eval_dataset,
         results_folder=args.results_folder,
         train_num_steps=args.train_num_steps,
         env = suite.load(domain_name="cartpole", task_name="swingup")
     )
+    
 
     if not args.load_checkpoint:
         # Initialize logging.
@@ -106,7 +128,8 @@ if __name__ == '__main__':
     else:
         trainer.ema.to(trainer.accelerator.device)
         # Load the last checkpoint.
-        trainer.load(milestone=trainer.train_num_steps)
+        # trainer.load(milestone=trainer.train_num_steps)
+        trainer.load()
 
     # Generate samples and save them.
     if args.save_samples:
